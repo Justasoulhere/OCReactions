@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>OC Reactions</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/board.css">
+<script>try{var t=localStorage.getItem('ocr3-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#reactions" aria-label="OC Reactions home">
+    <svg class="mark" viewBox="0 0 28 28" aria-hidden="true"><circle cx="5.5" cy="21.5" r="2.1" fill="var(--ink2)"/><circle cx="22.5" cy="21.5" r="2.1" fill="var(--ink2)"/><path d="M5.5 21.5h17" stroke="var(--ink2)" stroke-width="1.8"/><path d="M6.6 16.2C7.4 6.6 19.6 5.6 21.4 14.2" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"/><path d="M21.9 18.6 18.5 14.4l5.2-.9z" fill="var(--acc)"/></svg>
+    <span class="wm">OC Reactions</span>
+  </a>
+  <nav class="tabs" id="tabs" aria-label="Views">
+    <a href="#reactions" data-v="reactions">Reactions</a>
+    <a href="#reagents" data-v="reagents">Reagents</a>
+    <a href="#graph" data-v="graph">Graph</a>
+    <a href="#study" data-v="study">Study</a>
+    <a href="#board" data-v="board">Board</a>
+    <span class="tab-ink" aria-hidden="true"></span>
+  </nav>
+  <button class="kbar" id="kbar" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m13 13 4.2 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Search everything</span><kbd>Ctrl</kbd><kbd>K</kbd></button>
+  <button class="btn sm settings-open" id="settings" type="button" title="Settings">⚙</button><label class="sw theme-sw" title="Dark theme"><button class="bond" id="theme" role="switch" aria-checked="true" aria-label="Dark theme"><i class="a1"></i><i class="l1"></i><i class="l2"></i><i class="a2"></i></button><span>Dark</span></label>
+</header>
+<main id="view"></main>
+<div class="ov" id="viewer" hidden></div>
+<div class="ov" id="cmdp" hidden></div>
+<div id="fring" aria-hidden="true"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>window.OCR_PUBLIC=true</script>
+<script src="js/data.js"></script>
+<script src="js/art.js"></script>
+<script src="js/vendor/d3-force.js"></script>
+<script src="js/app.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/study.js"></script>
+<script src="js/board/metrics.js"></script>
+<script src="js/board/chem.js"></script>
+<script src="js/board/render.js"></script>
+<script src="js/board/rx_parse.js"></script>
+<script src="js/board/engine_core.js"></script>
+<script src="js/board/engine_r1.js"></script>
+<script src="js/board/engine_r2.js"></script>
+<script src="js/board/engine_r3.js"></script>
+<script src="js/board/engine_r4.js"></script>
+<script src="js/board/engine_r5.js"></script><script src="js/board/engine_r6.js"></script><script src="js/board/engine_r7.js"></script><script src="js/board/engine_r8.js"></script><script src="js/board/engine_r9.js"></script><script src="js/board/engine_r10.js"></script><script src="js/board/engine_r11.js"></script><script src="js/board/engine_r12.js"></script>
+<script src="js/board/engine_solve.js"></script>
+<script src="js/board/stereo.js"></script>
+<script src="js/boardcov.js"></script>
+<script src="js/board.js"></script>
+</body>
+</html>
