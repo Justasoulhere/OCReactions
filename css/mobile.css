@@ -1,0 +1,45 @@
+/* Phone adaptations retain the Slate & Chalk system and the desktop layout. */
+.mobile-filter{display:none}
+@media(max-width:900px){
+  :root{--top:104px}
+  .top{height:var(--top);display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;grid-template-rows:54px 50px;gap:0 6px;padding:0 10px}
+  .brand{min-width:0}.brand .wm{font-size:16px;overflow:hidden;text-overflow:ellipsis}
+  .tabs{grid-row:2;grid-column:1/-1;margin:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;min-width:0}
+  .tabs::-webkit-scrollbar{display:none}.tabs a{flex:none;padding:0 12px;min-height:44px}
+  .kbar{min-width:0;width:40px;height:40px;padding:0;justify-content:center;margin:0}
+  .kbar span,.kbar kbd,.theme-sw span{display:none}
+  .settings-open{min-width:40px;min-height:40px}
+  .theme-sw{min-width:40px;justify-content:center}
+  .mobile-filter{display:block;height:40px;padding:0 9px;border:1px solid var(--line);border-radius:9px;background:var(--raised);color:var(--ink2);font:inherit}
+  body:not(:has(.rv.on)) .mobile-filter{display:none}
+  .rv .rail{display:none;position:absolute;top:0;bottom:0;left:0;z-index:20;width:min(300px,88vw);background:var(--bg);box-shadow:var(--sh)}
+  body.mobile-filters-open .rv.on .rail{display:flex}
+  .rail .row{min-height:40px}
+  .bar-top{padding:10px 12px;gap:7px;flex-wrap:wrap}
+  .bar-top .search{flex:1 1 180px;max-width:none}
+  .grid{grid-template-columns:minmax(0,1fr);padding:6px 12px 40px;gap:10px}
+  .pills{padding:0 12px}.card{min-width:0}.card .art{height:140px}
+  .gv{flex-direction:column}.glist{width:100%;height:32%;min-height:130px;border-right:0;border-bottom:1px solid var(--line)}
+  .gmain{min-height:0}.ghero{padding:15px 14px 4px;flex-wrap:wrap}
+  .grv{flex-direction:column}.gcan{min-height:45%;flex:1}
+  .gcan .legend{left:6px;top:6px;right:6px;gap:7px;flex-wrap:wrap}
+  .gcan .hint{display:none}.gside{width:100%;height:38%;padding:12px 14px;border-left:0;border-top:1px solid var(--line)}
+  .vw{width:100%;height:100%;height:100dvh;border-radius:0}
+  .vw-h{padding:12px 14px 0}.vw-h h1{font-size:19px}
+  .vtabs{padding:8px 10px 0;overflow-x:auto}.vtabs button{flex:none}
+  .vw-b{padding:14px}.vw-f{flex-wrap:wrap;padding:8px 12px}
+  .rxv{grid-template-columns:minmax(0,1fr);gap:14px}.rxv-stage{min-height:200px;padding:14px}
+  .rxv-exs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sv .wrap{width:calc(100% - 24px)}.qcard{padding:14px;min-height:330px}
+  .grade{flex-wrap:wrap}.grade .btn{min-width:72px}.stats{flex-wrap:wrap;gap:8px}
+  .bx-rail{width:48px;overflow-y:auto}.bx-t{width:42px;min-height:42px}
+  .bx-ctx{height:auto;min-height:48px;gap:6px;padding:6px;flex-wrap:wrap}
+  .bx-opts{overflow-x:auto;flex:1 1 100%}.bx-right{max-width:100%;overflow-x:auto}
+  .bx-status{min-width:0;max-width:100%;gap:6px;overflow-x:auto}.bx-status .an,.bx-status .zm{flex:none}
+  .bx-smi,.bx-smi:focus-within{width:140px}.bx-quick{mask-image:none;overflow-x:auto}
+  .bx-pop{position:fixed;top:calc(var(--top) + 8px);left:8px;right:8px;width:auto;max-height:65vh;overflow:auto}
+  .bx-panel{position:absolute;z-index:15;left:48px;right:0;top:auto;bottom:0;width:auto;height:min(40%,300px);border-top:1px solid var(--line);box-shadow:var(--sh)}
+  .bx.nopanel .bx-panel{display:none}
+  .bx-help{max-height:70%;overflow:auto}
+  input,select,textarea{font-size:16px!important}
+}

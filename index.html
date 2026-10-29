@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/board.css">
+<link rel="stylesheet" href="css/mobile.css">
 <script>try{var t=localStorage.getItem('ocr3-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body>
@@ -23,6 +24,7 @@
     <span class="tab-ink" aria-hidden="true"></span>
   </nav>
   <button class="kbar" id="kbar" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m13 13 4.2 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Search everything</span><kbd>Ctrl</kbd><kbd>K</kbd></button>
+  <button class="mobile-filter" id="mobile-filter" type="button" aria-controls="rail" aria-expanded="false">Filters</button>
   <button class="btn sm settings-open" id="settings" type="button" title="Settings">⚙</button><label class="sw theme-sw" title="Dark theme"><button class="bond" id="theme" role="switch" aria-checked="true" aria-label="Dark theme"><i class="a1"></i><i class="l1"></i><i class="l2"></i><i class="a2"></i></button><span>Dark</span></label>
 </header>
 <main id="view"></main>
@@ -51,5 +53,17 @@
 <script src="js/board/stereo.js"></script>
 <script src="js/boardcov.js"></script>
 <script src="js/board.js"></script>
+<script>
+(() => {
+  const btn = document.getElementById('mobile-filter');
+  function close() { document.body.classList.remove('mobile-filters-open'); btn.setAttribute('aria-expanded', 'false'); }
+  btn.addEventListener('click', () => {
+    const open = document.body.classList.toggle('mobile-filters-open');
+    btn.setAttribute('aria-expanded', String(open));
+  });
+  window.addEventListener('hashchange', close);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
+</script>
 </body>
 </html>
