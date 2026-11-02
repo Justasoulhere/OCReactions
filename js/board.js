@@ -281,7 +281,7 @@ function solveAll() {
     let [r, key] = solveOne(src, rg);
     if (ar.forceLib || (r.status !== 'ok' && r.status !== 'empty')) { const fk = 'nb|' + key; let fb = S.cache.get(fk); if (fb === undefined) { try { fb = libFallback(src, rg); } catch (e) { fb = null; } S.cache.set(fk, fb); } if (fb && fb.noRx) { if (r.status === 'none') r = Object.assign({}, r, { agree: fb.id }); } else if (fb) r = fb;
       if (r.status !== 'ok' && !(fb && fb.noRx) && !(r.status === 'none' && r.positive)) { const ak = 'an|' + key; let an = S.cache.get(ak); if (an === undefined) { try { an = analogyFallback(src, rg); } catch (e) { an = null; } S.cache.set(ak, an); } if (an) r = an; } }
-    if (r.status === 'ok' && r.product && !r._al) { try { alignTo(r.product, src, r.extra); } catch (e) { } try { const St = window.Stereo; if (St) for (const m of [r.product, ...(r.extra || [])].filter(x => x && x.bonds)) { const c = St.cip(m); for (const b of m.bonds.values()) if ((b.st === 1 || b.st === 6) && !c.all.has(b.a)) b.st = 0; } } catch (e) { } r._al = true; }
+    if (r.status === 'ok' && r.product && !r._al) { try { alignTo(r.product, src, r.extra); } catch (e) { } try { if (tidyBad(r.product)) alignTo(r.product, src); for (const x of r.extra || []) if (x && x.atoms) tidyBad(x); } catch (e) { } try { const St = window.Stereo; if (St) for (const m of [r.product, ...(r.extra || [])].filter(x => x && x.bonds)) { const c = St.cip(m); for (const b of m.bonds.values()) if ((b.st === 1 || b.st === 6) && !c.all.has(b.a)) b.st = 0; } } catch (e) { } r._al = true; }
     ar.res = r; ar.key = key; ar.st = r.status === 'ok' ? stereoFor(ar) : null;
   }
   layoutScheme();
@@ -324,6 +324,39 @@ function fit2D(P, Q) {
     for (let k = 0; k < n; k++) { const ax = (P[k][0] - px) * refl, ay = P[k][1] - py; const x = ax * c - ay * s + qx, y = ax * s + ay * c + qy; err += (x - Q[k][0]) ** 2 + (y - Q[k][1]) ** 2; }
     best.push({ refl, c, s, err, px, py, qx, qy }); }
   const [r0, r1] = best; return r1.err < r0.err * .55 - 1 ? r1 : r0;
+}
+/* ---------------- clean drawings: a product or step whose atoms clash (ring cleavage, ring expansion, cyclisation)
+   is redrawn with fresh 2D coordinates, fragment by fragment, keeping benzene rings where they were and the overall
+   orientation of the old drawing, so two C=O never sit on top of each other where a ring C=C used to be ---------------- */
+function segCross(p1, p2, p3, p4) { const d = (a, b, c) => (c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0]); const d1 = d(p3, p4, p1), d2 = d(p3, p4, p2), d3 = d(p1, p2, p3), d4 = d(p1, p2, p4); return ((d1 > 1e-6 && d2 < -1e-6) || (d1 < -1e-6 && d2 > 1e-6)) && ((d3 > 1e-6 && d4 < -1e-6) || (d3 < -1e-6 && d4 > 1e-6)); }
+function layoutBad(m, ids, exempt) {
+  const want = ids ? new Set(ids) : null; const heavy = [...m.atoms.values()].filter(a => a.el !== 'H' && (!want || want.has(a.id)));
+  const nb = new Map(heavy.map(a => [a.id, new Set(m.nbrs(a.id))]));
+  const bs = [...m.bonds.values()].filter(b => nb.has(b.a) && nb.has(b.b));
+  for (const b of bs) { const A = m.atoms.get(b.a), B = m.atoms.get(b.b); const d = Math.hypot(A.x - B.x, A.y - B.y); if (d > 1.85 * BL || d < 0.45 * BL) return 'bond'; }
+  for (let i = 0; i < heavy.length; i++) for (let j = i + 1; j < heavy.length; j++) { const A = heavy[i], B = heavy[j]; if (nb.get(A.id).has(B.id)) continue;
+    const lim = exempt && exempt.has(A.id) && exempt.has(B.id) ? 0.5 : 0.72; if (Math.hypot(A.x - B.x, A.y - B.y) < lim * BL) return 'clash'; }
+  if (bs.length < 160) for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i], b = bs[j]; if (a.a === b.a || a.a === b.b || a.b === b.a || a.b === b.b) continue;
+    const P = id => { const x = m.atoms.get(id); return [x.x, x.y]; }; if (segCross(P(a.a), P(a.b), P(b.a), P(b.b))) return 'cross'; }
+  return '';
+}
+/* redraw each badly drawn fragment of m in place; returns true when something was redrawn */
+function tidyBad(m, exempt) {
+  if (!m || !m.atoms || !m.atoms.size || !window.Chem || !Chem.relayout) return false; let did = false;
+  for (const ids of m.frags()) {
+    if (ids.length < 3 || !layoutBad(m, ids, exempt)) continue;
+    const sub = m.sub(ids); const old = new Map(ids.map(id => { const a = m.atoms.get(id); return [id, [a.x, a.y]]; }));
+    let keep = []; try { for (const r of Chem.aromaticRings ? Chem.aromaticRings(sub) : []) if (r.length === 6 && !layoutBad(sub, r)) keep = keep.concat(r); } catch (e) { keep = []; }
+    try { Chem.relayout(sub, BL, keep.length >= 6 ? keep : null); } catch (e) { continue; }
+    if (layoutBad(sub) && keep.length) { try { Chem.relayout(sub, BL, null); } catch (e) { continue; } }
+    const hid = ids.filter(id => sub.atoms.has(id) && sub.atoms.get(id).el !== 'H');
+    const T = fit2D(hid.map(id => [sub.atoms.get(id).x, sub.atoms.get(id).y]), hid.map(id => old.get(id)));
+    for (const id of ids) { const a = sub.atoms.get(id), t = m.atoms.get(id); if (!a || !t) continue; let x = a.x, y = a.y;
+      if (T) { const ax = (x - T.px) * T.refl, ay = y - T.py; x = ax * T.c - ay * T.s + T.qx; y = ax * T.s + ay * T.c + T.qy; } t.x = x; t.y = y; }
+    if (T && T.refl < 0) for (const b of m.bonds.values()) if (old.has(b.a) && old.has(b.b)) { if (b.st === 1) b.st = 6; else if (b.st === 6) b.st = 1; }
+    did = true;
+  }
+  return did;
 }
 function alignTo(prod, src, extra) {
   const ids = [...prod.atoms.keys()].filter(id => src.atoms.has(id) && prod.atoms.get(id).el !== 'H'); if (ids.length < 2) return;
@@ -974,11 +1007,23 @@ function updateSmilesField() {
 const MV = { res: null, T: [], i: 0, shown: null, box: null, playing: false, timer: 0, anim: 0, big: false };
 /* every frame is turned to match the one before it (same atom ids), so a step never spins or mirrors the drawing */
 function alignClone(m, ref) { if (!m) return m; const c = m.clone(); if (ref) { try { alignTo(c, ref); } catch (e) { } } return c; }
+/* atoms of a whose element, charge, H count, degree or bonds differ in b (or that are gone in b) */
+function changedIds(a, b) {
+  const out = new Set(); if (!a || !b) return out; const sa = sigs(a), sb = sigs(b);
+  const bondsOf = (m, id) => m.nbrs(id).map(n => { const x = m.bondBetween ? m.bondBetween(id, n) : null; return n + ':' + (x ? x.o : '?'); }).sort().join(',');
+  for (const x of a.atoms.values()) { if (x.el === 'H') continue; if (!b.atoms.has(x.id) || sa.a.get(x.id) !== sb.a.get(x.id)) { out.add(x.id); continue; }
+    try { if (bondsOf(a, x.id) !== bondsOf(b, x.id)) out.add(x.id); } catch (e) { } }
+  return out;
+}
+function tidyFrame(c, ref, ex) { try { if (tidyBad(c, ex) && ref) alignTo(c, ref); } catch (e) { } return c; }
 function mvTargets(r, src) {
   const T = []; let ref = src || null;
-  (r.steps || []).forEach((s, j) => { const mol = alignClone(s.L, ref); T.push({ mol, arrows: s.arrows || [], text: s.text || '', cond: s.cond || [], j }); ref = mol; });
-  T.push({ mol: alignClone(r.product, ref), arrows: [], text: '', final: true, j: T.length });
-  T.forEach((t, j) => { const st = (r.steps || [])[j]; if (st && st.R) t.R = alignClone(st.R, t.mol); });
+  (r.steps || []).forEach((s, j) => { const ar = s.arrows || []; const ex = new Set(); for (const a of ar) { for (const id of a.s || []) ex.add(id); for (const id of a.t || []) ex.add(id); }
+    const mol = tidyFrame(alignClone(s.L, ref), ref, ex); T.push({ mol, arrows: ar, text: s.text || '', cond: s.cond || [], j, redox: !!s.redox }); ref = mol; });
+  T.push({ mol: tidyFrame(alignClone(r.product, ref), ref), arrows: [], text: '', final: true, j: T.length });
+  T.forEach((t, j) => { const st = (r.steps || [])[j]; if (st && st.R) t.R = tidyFrame(alignClone(st.R, t.mol), t.mol); });
+  /* a step drawn without curved arrows gets the atoms that change highlighted, and the next frame shows what is new */
+  for (let j = 0; j < T.length - 1; j++) if (!T[j].arrows.length) { T[j].hl = changedIds(T[j].mol, T[j + 1].mol); T[j + 1].hlNew = changedIds(T[j + 1].mol, T[j].mol); }
   return T;
 }
 function mvSvg() { return S.el && S.el.querySelector('.bx-mvs'); }
@@ -997,10 +1042,15 @@ const keepOf = T => { const k = new Set(); for (const a of (T && T.arrows) || []
 function layK(m, keep) { return Render.layout(m, { BL, fs: FS, keepH: keep }); }
 function stBox(T) { const L = layK(T.mol, keepOf(T)); const ar = T.arrows.length ? Render.drawArrows(L, T.arrows) : null; return { L, ar, box: ar ? ar.box : L.box }; }
 function setVB(b) { const s = mvSvg(); if (!s) return; const p = 26; s.setAttribute('viewBox', `${f1(b[0] - p)} ${f1(b[1] - p)} ${f1(b[2] - b[0] + p * 2)} ${f1(b[3] - b[1] + p * 2)}`); }
+function haloSvg(L, T) {
+  const hs = []; const put = (set, cls) => { if (!set || !set.size || set.size > 24) return; for (const id of set) { const a = L.atoms.get(id); if (a) hs.push(`<circle class="${cls}" cx="${f1(a.x)}" cy="${f1(a.y)}" r="${(BL * 0.38).toFixed(1)}"/>`); } };
+  if (!T.arrows.length) { put(T.hl, 'hlo'); if (!T.hl || !T.hl.size) put(T.hlNew, 'hln'); else if (T.hlNew) put([...T.hlNew].some(id => !T.hl.has(id)) ? new Set([...T.hlNew].filter(id => !T.hl.has(id))) : null, 'hln'); }
+  return hs.length ? `<g class="mv-hl">${hs.join('')}</g>` : '';
+}
 function mvStatic(T, drawIn) {
   const s = mvSvg(); if (!s) return; const { L, ar, box } = stBox(T);
   s.classList.remove('draw'); s.style.removeProperty('--e');
-  s.querySelector('.mvg').innerHTML = `<g class="mv-st">${Render.svgMol(L, { cls: 'mol' })}${ar ? ar.svg : ''}</g>`;
+  s.querySelector('.mvg').innerHTML = `<g class="mv-st">${haloSvg(L, T)}${Render.svgMol(L, { cls: 'mol' })}${ar ? ar.svg : ''}</g>`;
   if (drawIn && motion()) { void s.getBoundingClientRect(); s.classList.add('draw'); }
   setVB(box); MV.shown = T.mol; MV.box = box;
 }
@@ -1038,6 +1088,15 @@ function morph(from, to, dur, fadeSvg, box0, box1, done, kf, kt) {
   };
   cancelAnimationFrame(MV.anim); MV.anim = raf(frame);
 }
+/* plain cross-fade between two drawings (used after a step drawn without arrows: nothing slides around unexplained) */
+function xfade(from, T, dur, box0, box1, done, kf, kt) {
+  const s = mvSvg(); if (!s) { done(); return; } s.classList.remove('draw'); s.style.removeProperty('--e');
+  const Lf = layK(from, kf), Lt = layK(T.mol, kt);
+  s.querySelector('.mvg').innerHTML = `<g class="mv-xo">${Render.svgMol(Lf, { cls: 'mol' })}</g><g class="mv-xn" style="opacity:0">${haloSvg(Lt, T)}${Render.svgMol(Lt, { cls: 'mol' })}</g>`;
+  const go = s.querySelector('.mv-xo'), gn = s.querySelector('.mv-xn'); const t0 = performance.now();
+  const frame = now => { if (!mvSvg()) return; const t = clamp((now - t0) / dur, 0, 1), e = easeIO(t); go.style.opacity = (1 - Math.min(1, e * 1.6)).toFixed(3); gn.style.opacity = Math.max(0, e * 1.6 - 0.6).toFixed(3); setVB(box0.map((v, k) => lerp(v, box1[k], e))); if (t < 1) MV.anim = raf(frame); else done(); };
+  cancelAnimationFrame(MV.anim); MV.anim = raf(frame);
+}
 function mvPaint(i, anim, from) {
   const T = MV.T[i]; if (!T) return; mvText(i);
   if (!anim || !motion() || !MV.shown || !mvSvg()) { cancelAnimationFrame(MV.anim); mvStatic(T, !!MV.shown); return; }
@@ -1045,6 +1104,7 @@ function mvPaint(i, anim, from) {
   const prevT = MV.T[from]; const R = from >= 0 && from < MV.res.steps.length && i === from + 1 ? (prevT.R || MV.res.steps[from].R) : null;
   const fade = prevT && prevT.arrows.length ? stBox(prevT).ar.svg : '';
   const kPrev = keepOf(prevT), kT = keepOf(T);
+  if (prevT && !prevT.arrows.length && !R) { xfade(MV.shown, T, 560, MV.box, fin, () => mvStatic(T, true), kPrev, kT); return; }
   if (R) { const rb = layK(R, kT).box; seq.push([MV.shown, R, 680, fade, MV.box, rb, kPrev, kT]); seq.push([R, T.mol, 380, '', rb, fin, kT, kT]); }
   else seq.push([MV.shown, T.mol, 520, fade, MV.box, fin, kPrev, kT]);
   const run = k => { if (k >= seq.length) { mvStatic(T, true); return; } const q = seq[k]; morph(q[0], q[1], q[2], q[3], q[4] || fin, q[5], () => run(k + 1), q[6], q[7]); };
@@ -1054,8 +1114,9 @@ function mvText(i) {
   const T = MV.T[i]; const box = S.el.querySelector('.bx-mvt'); if (!box || !T) return; const n = MV.T.length - 1;
   const dots = S.el.querySelector('.bx-dots'); if (dots) dots.innerHTML = MV.T.map((t, j) => `<button type="button" class="${j === i ? 'on' : ''}${j < i ? ' past' : ''}${t.final ? ' fin' : ''}" data-mvi="${j}" aria-label="${t.final ? 'Product' : 'Step ' + (j + 1)}"></button>`).join('');
   S.el.querySelector('[data-mv=prev]').disabled = i <= 0; S.el.querySelector('[data-mv=next]').disabled = i >= n;
-  if (T.final) { const an = analysis(T.mol); box.innerHTML = `<div class="k">Product</div><p>${an ? `${chemHTML(an.formula)}${an.mw ? ` · ${an.mw.toFixed(2)} g/mol` : ''}${an.dbe != null ? ` · DBE ${an.dbe}` : ''}` : ''}</p>`; return; }
-  box.innerHTML = `<div class="k">Step ${i + 1} of ${n}${T.cond && T.cond.length ? ` <span class="cond">${T.cond.map(chemHTML).join(' · ')}</span>` : ''}</div><p>${esc(T.text || (T.arrows.length ? 'Electron movement shown by the curved arrows.' : ''))}</p>`;
+  if (T.final) { const an = analysis(T.mol); const nw = T.hlNew && T.hlNew.size && T.hlNew.size <= 24 ? '<p class="hlnote"><i class="hln"></i>new or changed atoms</p>' : ''; box.innerHTML = `<div class="k">Product</div><p>${an ? `${chemHTML(an.formula)}${an.mw ? ` · ${an.mw.toFixed(2)} g/mol` : ''}${an.dbe != null ? ` · DBE ${an.dbe}` : ''}` : ''}</p>${nw}`; return; }
+  const hint = !T.arrows.length && T.hl && T.hl.size ? '<p class="hlnote"><i class="hlo"></i>' + (T.redox ? 'redox / surface step: electrons move one at a time (metal, catalyst or oxidant), so JEE asks no curly arrows here. These atoms change; the next frame shows the result' : 'these atoms change in this step; the next frame shows the result') + '</p>' : '';
+  box.innerHTML = `<div class="k">Step ${i + 1} of ${n}${T.cond && T.cond.length ? ` <span class="cond">${T.cond.map(chemHTML).join(' · ')}</span>` : ''}</div><p>${esc(T.text || (T.arrows.length ? 'Electron movement shown by the curved arrows.' : ''))}</p>${hint}`;
 }
 
 /* ---------------- the right panel ---------------- */
@@ -1282,7 +1343,9 @@ function deferExtras(i) {
       if (fb && fb.noRx) { const rx = A.BY.get(fb.id); const box = S.el.querySelector('.bx-res'); if (rx && box && !box.querySelector('.bx-diff')) box.insertAdjacentHTML('beforeend', `<div class="bx-diff solo"><div class="t"><b>The library records no reaction here</b><span>${esc(A.chLine(rx))} · ${A.fmt(A.title(rx))}</span></div><button type="button" class="btn sm" data-nmopen="${fb.id}">Open in the library</button></div>`); }
       else if (fb) { const kk = x => canonS(Chem.canon(x) || ''); const mine = new Set([r.product, ...(r.extra || [])].filter(Boolean).map(kk)); const theirs = kk(fb.product);
         const ent = libIndex().find(e => e.r.id === fb.fromLib); const anyMine = ent && ent.prods && ent.prods.some(p => mine.has(p));
-        if (theirs && !mine.has(theirs) && !anyMine) { const rx = A.BY.get(fb.fromLib); const box = S.el.querySelector('.bx-res'); if (box && !box.querySelector('.bx-diff')) box.insertAdjacentHTML('beforeend', `<div class="bx-diff"><div class="t"><b>The library records a different product here</b><span>${esc(A.chLine(rx))} · ${A.fmt(A.title(rx))}</span></div><div class="m">${molCard(fb.product)}</div>${rx && rx.dn ? `<p class="why">${A.fmt(rx.dn)}</p>` : ''}<button type="button" class="btn sm" data-uselib="${i}">Use the library’s product</button></div>`); } } }
+        /* run 39: only flag a conflict when the note used the same essential reagents (CH2N2 alone is not the Arndt–Eistert sequence SOCl2, CH2N2, Ag2O) */
+        let sameRg = true; try { const U0 = new Set(speciesOf(ar.reagent)); const need = ent && ent.sp ? [...ent.sp].filter(k => !WEAK.has(k)) : []; sameRg = need.every(k => U0.has(k)); } catch (e) { sameRg = true; }
+        if (theirs && !mine.has(theirs) && !anyMine && sameRg) { const rx = A.BY.get(fb.fromLib); const box = S.el.querySelector('.bx-res'); if (box && !box.querySelector('.bx-diff')) box.insertAdjacentHTML('beforeend', `<div class="bx-diff"><div class="t"><b>The library records a different product here</b><span>${esc(A.chLine(rx))} · ${A.fmt(A.title(rx))}</span></div><div class="m">${molCard(fb.product)}</div>${rx && rx.dn ? `<p class="why">${A.fmt(rx.dn)}</p>` : ''}<button type="button" class="btn sm" data-uselib="${i}">Use the library’s product</button></div>`); } } }
     let ways = S.waysCache.get(ar.key);
     if (!ways) { try { ways = Solve.ways(src, r.product).filter(w => normRg(w.reagent) !== normRg(ar.reagent) && w.title !== r.title).slice(0, 8); } catch (e) { ways = []; } S.waysCache.set(ar.key, ways); }
     const wb = S.el.querySelector('.bx-ways .bx-chipset');
@@ -1299,6 +1362,7 @@ function deferExtras(i) {
         const sim = tani(sfp, n.fp);
         const score = (sameP ? 3 : 0) + ov + sim * 1.6 + (sameS ? .6 : 0);
         if (!sameP && (ov < 1 || sim < .08)) continue;
+        if (sameP && ov < 1 && !sameS && sim < .6) continue; /* run 39: a shared product alone (acetic acid from ester hydrolysis vs Popoff oxidation) is not a related note */
         scored.push([score, n.r, sameP && ov >= 1 ? 'same product and reagent' : sameP ? 'same product' : sameS ? 'same reagent, same substrate' : `same reagent · ${Math.round(sim * 100)}% similar substrate`]);
       }
       scored.sort((a, b) => b[0] - a[0]); top = scored.slice(0, 4);
@@ -1537,5 +1601,6 @@ function openReactionOld(r) {
   if (S.rd) go(); else S.pending = go;
 }
 A.VIEWS.board = { mount, show: () => { if (S.el) { applyCam(); drawAll(); } }, hide: () => { closeEditors(true); mvStop(); } };
-window.Board = { canOpen, openReaction, _S: S, _scr: (x, y) => { const r = S.can.getBoundingClientRect(); const [a, b] = toScreen(x, y); return [a + r.left, b + r.top]; } };
+function openCase(smi, rg) { const go0 = () => loadSmiles(smi, { reagents: [rg || ''], flight: true }); if (S.rd) go0(); else S.pending = go0; }
+window.Board = { canOpen, openReaction, openCase, _S: S, _scr: (x, y) => { const r = S.can.getBoundingClientRect(); const [a, b] = toScreen(x, y); return [a + r.left, b + r.top]; } };
 })();

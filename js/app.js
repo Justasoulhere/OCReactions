@@ -415,23 +415,74 @@ VW.el.addEventListener('click', e => {
 });
 
 /* ---------- Reagents view ---------- */
+/* Run 37: every JEE reagent also has a full profile (prof/: the Board engine run on 38 functional groups), so a reagent shows
+   everything it does, not only the reactions that happen to be in the lecture notes. */
+const PF = window.RGPROF || null;
+const pfKey = l => norm(String(l).replace(/\(.*?\)/g, '')).replace(/\s+/g, '').replace(/[,;].*$/, '');
+const PFL = PF ? PF.reagents.map(([label, spell, cat], i) => {
+  const keys = new Set([pfKey(label), pfKey(spell.split(/,| then /)[0])]); let n = 0, na = 0;
+  for (const g of PF.groups) { const c = PF.cells[i + '|' + g[0]]; if (c && c.k === 'ok' && !c.aux) { n++; if (c.na) na++; } }
+  return { i, k: 'p:' + i, label, spell, cat, keys, n, na };
+}) : [];
+const pfFor = k => { if (!k) return null; if (k.startsWith('p:')) return PFL[+k.slice(2)] || null; const nk = k.replace(/[()]/g, ''); return PFL.find(p => [...p.keys].some(x => x && x.length > 2 && (x === nk || (nk.length > 3 && nk.startsWith(x) && x.length >= nk.length - 2)))) || null; };
+const notesFor = p => { if (!p) return null; for (const e of RGL) { const nk = e.k.replace(/[()]/g, ''); if ([...p.keys].some(x => x && x.length > 2 && (x === nk || (nk.startsWith(x) && x.length >= nk.length - 2)))) return e; } return null; };
+const PFS = { show: 'react' };
+function pfMol(id) { return (PF && PF.mol[id]) || ''; }
+/* run 40: by-products shown as formulas; one rule decides both the '+' and the list (no dangling '+') */
+const BYF = { 'O': 'H₂O', 'OC=O': 'HCOOH', 'O=CO': 'HCOOH', 'O=C[O-]': 'HCOO⁻', 'CO': 'CH₃OH', 'CCO': 'C₂H₅OH', 'CC(C)O': '(CH₃)₂CHOH', 'CC(C)(C)O': '(CH₃)₃COH', 'N': 'NH₃', '[NH4+]': 'NH₄⁺', 'O=C=O': 'CO₂', 'N#N': 'N₂', 'Cl': 'HCl', 'Br': 'HBr', 'I': 'HI', 'CC(=O)O': 'CH₃COOH', 'CC(O)=O': 'CH₃COOH', 'O=S=O': 'SO₂', 'O=S(=O)=O': 'SO₃', 'C#N': 'HCN', 'ClC(Cl)Cl': 'CHCl₃', 'BrC(Br)Br': 'CHBr₃', 'IC(I)I': 'CHI₃', '[H][H]': 'H₂', '[HH]': 'H₂', 'C=O': 'HCHO', 'CC(C)=O': 'CH₃COCH₃', '[Ag]': 'Ag', '[Cu]': 'Cu' };
+const pfBy = xs => (xs || []).map(x => BYF[x] || ((/[₀-₉⁺⁻]/.test(x) || /H/.test(String(x).replace(/\[[^\]]*\]/g, '')) || !/^[A-Za-z0-9()=#\[\]@+\-\\\/.]+$/.test(x) || x.length < 3) ? x : null)).filter((x, i, a) => x && a.indexOf(x) === i);
+function pfHTML(p) {
+  const rows = [], nos = [], aux = [];
+  for (const [g, gl, gs, gm] of PF.groups) { const c = PF.cells[p.i + '|' + g]; if (!c) continue;
+    if (c.k === 'ok') (c.aux ? aux : rows).push({ g, gl, gs, gm, c }); else if (c.k === 'none') nos.push({ g, gl, gs, gm, c }); }
+  const one = ({ g, gl, gs, gm, c }) => `<div class="pf-row" tabindex="0" data-case="${esc(gs)}" data-rg="${esc(p.spell)}" title="Open on the Board">
+      <div class="pf-g"><b>${esc(gl)}</b>${c.na ? '<span class="tagx pf-arrow">curly arrows</span>' : ''}${c.test ? '<span class="tagx">test</span>' : ''}</div>
+      <div class="pf-eq"><span class="pf-m">${pfMol(gm)}</span><svg class="pf-to" viewBox="0 0 40 12" aria-hidden="true"><path d="M2 6h32" stroke="currentColor" stroke-width="1.6"/><path d="M30 2l7 4-7 4z" fill="currentColor"/></svg><span class="pf-m">${pfMol(c.m)}</span>${(() => { const by = pfBy(c.x); return by.length ? `<span class="pf-by">+ ${by.map(esc).join(', ')}</span>` : ''; })()}</div>
+      <p class="pf-t">${fmt(c.t.split(', then ').filter(x => !/^no change with/.test(x)).join(' → '))}</p></div>`;
+  const no = ({ gl, c }) => `<div class="pf-no${c.pos ? ' pos' : ''}"><b>${esc(gl)}</b><span>${fmt(c.t && c.pos ? c.t + ': ' + c.why : c.why)}</span></div>`;
+  const tab = (v, l, n) => `<button type="button" data-pfs="${v}" class="${PFS.show === v ? 'on' : ''}">${l} <span class="pf-n">${n}</span></button>`;
+  const notes = notesFor(p);
+  return `<div class="ghero pf-hero"><h1>${fmt(p.label)}</h1><span>${esc(p.cat)} · reacts with ${p.n} of ${PF.groups.length} groups${p.na ? ` · ${p.na} with curly-arrow mechanisms` : ''}</span>${notes ? `<button class="btn sm" type="button" data-pfnotes="${esc(notes.k)}">${notes.ids.size} in the library ↓</button>` : ''}</div>
+    <div class="pf-bar"><div class="seg">${tab('react', 'Reacts', rows.length)}${tab('none', 'No reaction', nos.length)}${aux.length ? tab('aux', 'Done by the base / acid alone', aux.length) : ''}</div><span class="pf-hint">Simplest member of each group · click a row to watch it on the Board</span></div>
+    <div class="pf-list">${PFS.show === 'react' ? rows.map(one).join('') || '<div class="empty">Reacts with none of the groups.</div>' : PFS.show === 'aux' ? `<p class="pf-note">These happen because of the ${esc(p.spell.split(',').slice(1).join(',').trim() || 'helper reagent')} alone, not ${fmt(p.label)} itself.</p>` + aux.map(one).join('') : `<div class="pf-nos">${nos.map(no).join('')}</div>`}</div>`;
+}
 VIEWS.reagents = {
   mount(el) {
     el.classList.add('gv');
     el.innerHTML = `<aside class="glist"><div class="hd"><div class="search">${SEARCH_ICON}<input class="in" id="rgq" placeholder="Find a reagent" autocomplete="off" spellcheck="false"></div></div><div class="rows" id="rgl"></div></aside><section class="gmain" id="rgm"></section>`;
     const q = $('#rgq', el); q.addEventListener('input', debounce(() => this.rows(q.value), 100));
     $('#rgl', el).addEventListener('click', e => { const b = e.target.closest('[data-rg]'); if (!b) return; S.rg = b.dataset.rg; for (const x of $$('#rgl .row')) x.classList.toggle('on', x === b); this.main(); });
-    bindCards($('#rgm', el), () => $$('#rgm .card').map(c => c.dataset.id));
+    const m = $('#rgm', el);
+    m.addEventListener('click', e => {
+      const t = e.target.closest('[data-pfs]'); if (t) { PFS.show = t.dataset.pfs; this.main(true); return; }
+      const nb = e.target.closest('[data-pfnotes]'); if (nb) { const h = $('#rgm .pf-notes'); h && h.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      const r = e.target.closest('.pf-row'); if (r && window.Board && window.Board.openCase) { go('board'); window.Board.openCase(r.dataset.case, r.dataset.rg); }
+    });
+    m.addEventListener('keydown', e => { if (e.key !== 'Enter') return; const r = e.target.closest('.pf-row'); if (r) { e.preventDefault(); r.click(); } });
+    bindCards(m, () => $$('#rgm .card').map(c => c.dataset.id));
+    if (PFL.length && !S.rg.startsWith('p:') && !pfFor(S.rg)) S.rg = 'p:0';
     this.rows(''); this.main();
   },
-  rows(q) { const nq = norm(q).replace(/\s+/g, ''); const list = RGL.filter(e => !nq || e.k.includes(nq)); $('#rgl').innerHTML = list.map(e => `<button class="row${e.k === S.rg ? ' on' : ''}" data-rg="${esc(e.k)}"><span class="t">${fmt(e.label)}</span><span class="n">${e.ids.size}</span></button>`).join('') || '<div class="empty">No reagent by that name.</div>'; },
-  main() {
-    const e = RGI.get(S.rg); const m = $('#rgm'); if (!e) { m.innerHTML = ''; return; }
-    const main = [...e.main].map(id => BY.get(id)).sort((a, b) => a._k - b._k), exOnly = [...e.ids].filter(id => !e.main.has(id)).map(id => BY.get(id)).sort((a, b) => a._k - b._k);
-    m.innerHTML = `<div class="ghero"><h1>${fmt(e.label)}</h1><span>${e.ids.size} reaction${e.ids.size > 1 ? 's' : ''}</span></div><div class="grid">${main.map(cardHTML).join('')}${exOnly.length ? `<div class="ghead"><h2>Also used in class questions</h2><span>${exOnly.length}</span></div>` + exOnly.map(cardHTML).join('') : ''}</div>`;
-    m.scrollTop = 0; hydrate(m);
+  rows(q) {
+    const nq = norm(q).replace(/\s+/g, '');
+    const pl = PFL.filter(p => !nq || [...p.keys].some(k => k.includes(nq)) || norm(p.label).replace(/\s+/g, '').includes(nq) || norm(p.cat).includes(nq));
+    const used = new Set(pl.map(p => notesFor(p)).filter(Boolean).map(e => e.k));
+    const list = RGL.filter(e => (!nq || e.k.includes(nq)) && !used.has(e.k));
+    const cats = []; for (const p of pl) { if (!cats.includes(p.cat)) cats.push(p.cat); }
+    const prow = p => `<button class="row${p.k === S.rg || (notesFor(p) || {}).k === S.rg ? ' on' : ''}" data-rg="${p.k}"><span class="t">${fmt(p.label)}</span><span class="n" title="groups it reacts with">${p.n}</span></button>`;
+    $('#rgl').innerHTML = (pl.length ? cats.map(c => `<div class="rg-h">${esc(c)}</div>` + pl.filter(p => p.cat === c).map(prow).join('')).join('') : '')
+      + (list.length ? `<div class="rg-h">Only in the library</div>` + list.map(e => `<button class="row${e.k === S.rg ? ' on' : ''}" data-rg="${esc(e.k)}"><span class="t">${fmt(e.label)}</span><span class="n">${e.ids.size}</span></button>`).join('') : '')
+      || '<div class="empty">No reagent by that name.</div>';
   },
-  select(k) { S.rg = k; if (MOUNTED.has('reagents')) { this.rows($('#rgq').value = ''); this.main(); const b = $(`#rgl [data-rg="${CSS.escape(k)}"]`); b && b.scrollIntoView({ block: 'center' }); } }
+  main(keep) {
+    const m = $('#rgm'); const p = pfFor(S.rg); const e = p ? notesFor(p) : RGI.get(S.rg);
+    if (!p && !e) { m.innerHTML = ''; return; }
+    let h = p ? pfHTML(p) : '';
+    if (e) { const main = [...e.main].map(id => BY.get(id)).sort((a, b) => a._k - b._k), exOnly = [...e.ids].filter(id => !e.main.has(id)).map(id => BY.get(id)).sort((a, b) => a._k - b._k);
+      h += `<div class="ghero${p ? ' pf-notes' : ''}"><${p ? 'h2' : 'h1'}>${p ? 'From your lectures' : fmt(e.label)}</${p ? 'h2' : 'h1'}><span>${e.ids.size} reaction${e.ids.size > 1 ? 's' : ''}</span></div><div class="grid">${main.map(cardHTML).join('')}${exOnly.length ? `<div class="ghead"><h2>Also used in class questions</h2><span>${exOnly.length}</span></div>` + exOnly.map(cardHTML).join('') : ''}</div>`; }
+    const st = m.scrollTop; m.innerHTML = h; m.scrollTop = keep ? st : 0; hydrate(m);
+  },
+  select(k) { const p = pfFor(k); S.rg = p ? p.k : k; if (MOUNTED.has('reagents')) { this.rows($('#rgq').value = ''); this.main(); const b = $(`#rgl [data-rg="${CSS.escape(S.rg)}"]`); b && b.scrollIntoView({ block: 'center' }); } }
 };
 
 /* ---------- command palette ---------- */
@@ -474,6 +525,7 @@ function cpItems(q) {
   const rids = rs.map(x => x[0].id);
   for (const [r] of rs.slice(0, 8)) add('Reactions', '⌬', fmt(title(r)), esc(chLine(r)), () => openViewer(r.id, rids));
   if (rs.length > 8) add('Reactions', '⋯', `Show all ${rs.length} matches in the list`, '', () => { S.q = q; go('reactions'); const i = $('#q'); if (i) { i.value = q; VIEWS.reactions.list(); } });
+  for (const p of PFL.filter(p => [...p.keys].some(k => k.includes(nq.replace(/\s+/g, '')))).slice(0, 5)) add('Reagents', '⚗', fmt(p.label), `full profile · reacts with ${p.n} groups`, () => { go('reagents'); VIEWS.reagents.select(p.k); });
   for (const e of RGL.filter(e => e.k.includes(nq.replace(/\s+/g, ''))).slice(0, 5)) add('Reagents', '⚗', fmt(e.label), `${e.ids.size} reactions`, () => { go('reagents'); VIEWS.reagents.select(e.k); });
   for (const [c] of CHAPS.filter(([c]) => toks.every(t => norm(c).includes(t))).slice(0, 3)) add('Filter', '▦', 'Chapter: ' + esc(c), '', () => { S.ch.add(c); go('reactions'); VIEWS.reactions.rail(); VIEWS.reactions.list(); });
   for (const k of Object.keys(CLS).filter(k => CLSN.has(k) && norm(CLS[k][0]).startsWith(nq)).slice(0, 2)) add('Filter', '▦', 'Class: ' + CLS[k][0], '', () => { S.cls.add(k); go('reactions'); VIEWS.reactions.rail(); VIEWS.reactions.list(); });

@@ -251,7 +251,7 @@ reg({ id: 'acylation', name: 'Acylation (–OH / –NH)', fam: 'Acid derivative'
   run(m, c) {
     const nh = M(m, '[NX3;!H0;!$(NC=O):1]'), oh = M(m, '[OX2H1;!$(OC=O):1]');
     const hins = c.has('Hinsberg');
-    if (c.has('FeX3') && !hins && M(m, '[c][NX3;!$(NC=O)]').length) return none('No Friedel–Crafts on aniline', 'The –NH₂ lone pair binds AlCl₃ (a Lewis acid–base salt). N becomes positive and strongly deactivates the ring, so Friedel–Crafts fails. (Without AlCl₃, CH₃COCl would simply acetylate the N.)');
+    if (c.has('FeX3') && !hins && M(m, '[c][NX3;!$(NC=O);!$([N+])]').length) return none('No Friedel–Crafts on aniline', 'The –NH₂ lone pair binds AlCl₃ (a Lewis acid–base salt). N becomes positive and strongly deactivates the ring, so Friedel–Crafts fails. (Without AlCl₃, CH₃COCl would simply acetylate the N.)');
     if (hins) {
       const am = M(m, '[NX3;!$(NC=O);!$(N=*);!$(N#*):1]').filter(([n]) => !m.bondsOf(n).some(b => el(m, m.other(b, n)) === 'O'));
       if (!am.length) return null; const [n] = am[0]; const nh2 = hTot(m, n);
@@ -316,7 +316,8 @@ function sites(m, ring, all) {
 }
 function easStep(mech, p, eSpec, eAtt, text, cond, extraArrows) {
   const m = mech.m; const q = m.nbrs(p).find(n => m.bondBetween(p, n).o === 2 && aromSet(m).has(n));
-  const ids = mech.add(eSpec, p, { dist: 1.7 * BL, att: eAtt || 1 }); const E1 = ids.get(eAtt || 1);
+  let att = eAtt || 1; const spc = typeof eSpec === 'string' ? E.species(eSpec) : eSpec; if (spc && spc.atoms && spc.atoms.size > 4) { const pos = [...spc.atoms.values()].find(a => (a.chg || 0) > 0 && a.el === 'C'); if (pos) att = pos.id; }
+  const ids = mech.add(spc || eSpec, p, { dist: 1.7 * BL, att }); const E1 = ids.get(att);
   mech.step([[[p, q], [p, E1]], ...(extraArrows ? extraArrows(ids) : [])], text, cond);
   return { q, E1 };
 }
@@ -355,7 +356,7 @@ reg({ id: 'eas', name: 'Electrophilic aromatic substitution', fam: 'Aromatic', c
       easFinish(mech, p, r.q, `[${X}-]`, `Fe${X}₄⁻ removes H⁺ and Fe${X}₃ is regenerated.`); title = `${X === 'Br' ? 'Bromination' : 'Chlorination'} (Lewis acid)`;
     } else if (fc) {
       if (c.any(['AcCl', 'Ac2O', 'BzCl', 'RCOCl'])) { const acy = c.has('BzCl') ? '[C+](=O)C1=CC=CC=C1' : c.has('RCOCl') ? '[C+](=O)' + (c.get('RCOCl').smi || 'C') : '[C+](=O)C'; const r = easStep(mech, p, acy, 1, 'AlCl₃ pulls Cl⁻ off the acyl chloride: the acylium ion R–C≡O⁺ is attacked by the ring.', ['AlCl₃']); easFinish(mech, p, r.q, '[Cl-]', 'AlCl₄⁻ removes H⁺. The ketone product is deactivated, so no second acylation.'); title = 'Friedel–Crafts acylation → aryl ketone'; why.push('No rearrangement, no polysubstitution'); }
-      else { let rs = (c.get('RX') || {}).smi || 'C'; let note = ''; if (/^CCC+$/.test(rs)) { rs = 'C(C)' + rs.slice(2); note = 'The 1° carbocation rearranges (1,2-H shift) to the 2° one first, so the ring gets the branched group.'; } const cat = rs === 'C' ? '[CH3+]' : '[CH+]' + rs.slice(1).replace(/^\((\w+)\)/, '($1)'); const spec = rs === 'C' ? '[CH3+]' : rs.startsWith('C(C)(C)') ? '[C+](C)(C)' + rs.slice(7) : rs.startsWith('C(C)') ? '[CH+](C)' + rs.slice(4) : '[CH2+]' + rs.slice(1); const r = easStep(mech, p, spec, 1, 'AlCl₃ takes Cl⁻ from the alkyl halide: the carbocation is attacked by the ring.' + (note ? ' ' + note : ''), ['AlCl₃']); easFinish(mech, p, r.q, '[Cl-]', 'AlCl₄⁻ removes H⁺.'); title = 'Friedel–Crafts alkylation'; why.push('Alkyl groups activate the ring: polyalkylation is a problem'); if (note) why.push('Carbocations rearrange before attacking'); }
+      else { let rs = (c.get('RX') || {}).smi || 'C'; let note = ''; if (/^CCC+$/.test(rs)) { rs = 'C(C)' + rs.slice(2); note = 'The 1° carbocation rearranges (1,2-H shift) to the 2° one first, so the ring gets the branched group.'; } const cat = rs === 'C' ? '[CH3+]' : '[CH+]' + rs.slice(1).replace(/^\((\w+)\)/, '($1)'); const spec = (() => { if (rs === 'C') return '[CH3+]'; let d = 1; try { const q = C.fromSmilesMB(rs, BL); const f = [...q.atoms.keys()][0]; d = q.nbrs(f).filter(x => q.atoms.get(x).el !== 'H').length; } catch (e) { d = rs.startsWith('C(C)(C)') ? 3 : rs.startsWith('C(C)') ? 2 : 1; } return '[C' + (d >= 3 ? '' : d === 2 ? 'H' : 'H2') + '+]' + rs.slice(1); })(); const sk = (() => { try { const q = E.species(spec); for (const [id, a] of q.atoms) if ((a.chg || 0) > 0) return id; } catch (e) { } return 1; })(); const r = easStep(mech, p, spec, sk, 'AlCl₃ takes Cl⁻ from the alkyl halide: the carbocation is attacked by the ring.' + (note ? ' ' + note : ''), ['AlCl₃']); easFinish(mech, p, r.q, '[Cl-]', 'AlCl₄⁻ removes H⁺.'); title = 'Friedel–Crafts alkylation'; why.push('Alkyl groups activate the ring: polyalkylation is a problem'); if (note) why.push('Carbocations rearrange before attacking'); }
     } else if (c.any(['oleum', 'H2SO4'])) { const t = m.clone(); graft(t, p, 'S(=O)(=O)O'); return tx(m, t, { title: 'Sulphonation → arenesulphonic acid', text: 'SO₃ (from oleum or hot conc. H₂SO₄) is the electrophile. Sulphonation is reversible: steam removes –SO₃H again.', why, tags: ['SEAr'] }); }
     else return null;
     const o = done(mech, { title: title + (S0.subs.length ? ' (major isomer)' : ''), why, tags: ['SEAr'] });
@@ -420,6 +421,7 @@ reg({ id: 'amine_rx', name: 'Amine reactions', fam: 'Amine', canon: 'CHCl₃, al
     const am = M(m, '[NX3;!$(NC=O);!$(N=*);!$(N#*):1]').filter(([n]) => hTot(m, n) > 0 || true); if (!am.length || M(m, '[CX4][Cl,Br,I]').length) return null;
     const [n] = am[0]; const rs = (c.get('RX') || {}).smi || 'C'; const t = m.clone(); const excess = c.flag('excess');
     if (excess) { const k = hTot(t, n); for (let i = 0; i < k + 1; i++) graft(t, n, rs); t.atoms.get(n).chg = 1; return tx(m, t, { title: 'Exhaustive alkylation → quaternary ammonium salt', text: 'With excess R–X every N–H is replaced and a fourth R adds: R₄N⁺ X⁻.', why: [], tags: ['SN2'] }); }
+    if (hTot(t, n) === 0) { graft(t, n, rs); t.atoms.get(n).chg = 1; return tx(m, t, { title: '3° amine + R–X → quaternary ammonium salt (Menshutkin)', text: 'The 3° amine lone pair attacks the alkyl halide (SN2); with no N–H left, N keeps the positive charge: R₄N⁺ X⁻.', why: [], tags: ['SN2'] }); }
     graft(t, n, rs); return tx(m, t, { title: 'N-Alkylation (SN2)', text: 'The amine lone pair attacks the alkyl halide; a mixture of 2°, 3° amines and the quaternary salt usually forms.', why: ['Hard to stop at one alkylation'], tags: ['SN2'] });
   } });
 reg({ id: 'epox_open', name: 'Epoxide ring opening', fam: 'Ether', canon: 'H₃O⁺', db: ['Acid hydrolysis of ethers'],
@@ -433,10 +435,10 @@ reg({ id: 'acidbase', name: 'Acid–base', fam: 'Acid–base', canon: 'NaHCO₃'
   run(m, c) {
     const ac = acids(m), so = M(m, '[SX4](=O)(=O)[OX2H1:1]'), ph = arOH(m).filter(([, o]) => m.atoms.get(o).chg === 0);
     const t = m.clone();
-    if (c.has('NaHCO3')) { if (!ac.length && !so.length) return none('No reaction with NaHCO₃', ph.length ? 'Phenol is too weak an acid to release CO₂ from NaHCO₃ (that is how you tell it from a carboxylic acid).' : 'Nothing here is acidic enough.'); for (const x of ac) t.atoms.get(x[2]).chg = -1; for (const x of so) t.atoms.get(x[0]).chg = -1; return tx(m, t, { title: 'Brisk effervescence: carboxylate + CO₂↑', text: 'Carboxylic (and sulphonic) acids are stronger than H₂CO₃, so they release CO₂ from NaHCO₃.', why: ['Test for –COOH'], tags: ['acidbase'] }); }
+    if (c.has('NaHCO3')) { if (!ac.length && !so.length) return none('No reaction with NaHCO₃', ph.length ? 'Phenol is too weak an acid to release CO₂ from NaHCO₃ (that is how you tell it from a carboxylic acid).' : 'Nothing here is acidic enough.'); for (const x of ac) t.atoms.get(x[2]).chg = -1; for (const x of so) t.atoms.get(x[3]).chg = -1; return tx(m, t, { title: 'Brisk effervescence: ' + (ac.length ? 'carboxylate' : 'sulphonate') + ' + CO₂↑', text: 'Carboxylic (and sulphonic) acids are stronger than H₂CO₃, so they release CO₂ from NaHCO₃.', why: ['Test for –COOH'], tags: ['acidbase'] }); }
     if (!ac.length && !ph.length && !so.length) { if (M(m, '[CX4][OX2H1]').length) return none('No reaction with aq. NaOH', 'Alcohols are weaker acids than water, so NaOH cannot deprotonate them.'); return null; }
-    for (const x of ac) t.atoms.get(x[2]).chg = -1; for (const x of ph) t.atoms.get(x[1]).chg = -1; for (const x of so) t.atoms.get(x[0]).chg = -1;
-    return tx(m, t, { title: ac.length ? 'Neutralisation → carboxylate salt' : 'Phenol + NaOH → sodium phenoxide', text: ac.length ? 'R–COOH + NaOH → R–COO⁻Na⁺ + H₂O.' : 'Phenol is acidic enough (pKa ≈ 10) to react with NaOH; the phenoxide is resonance-stabilised.', why: ['Acidity: RCOOH > phenol > water > alcohol'], tags: ['acidbase'] });
+    for (const x of ac) t.atoms.get(x[2]).chg = -1; for (const x of ph) t.atoms.get(x[1]).chg = -1; for (const x of so) t.atoms.get(x[3]).chg = -1;
+    return tx(m, t, { title: ac.length ? 'Neutralisation → carboxylate salt' : so.length ? 'Neutralisation → sulphonate salt' : 'Phenol + NaOH → sodium phenoxide', text: ac.length ? 'R–COOH + NaOH → R–COO⁻Na⁺ + H₂O.' : 'Phenol is acidic enough (pKa ≈ 10) to react with NaOH; the phenoxide is resonance-stabilised.', why: ['Acidity: RCOOH > phenol > water > alcohol'], tags: ['acidbase'] });
   } });
 reg({ id: 'rosenmund', name: 'Rosenmund reduction', fam: 'Acid derivative', canon: 'H₂, Pd/BaSO₄', db: ['Rosenmund reduction'],
   test: c => c.has('H2') && (c.has('Lindlar') || /baso4/i.test(c.raw || '')),

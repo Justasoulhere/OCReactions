@@ -425,3 +425,44 @@ html[data-theme=snow] .theme-card,html[data-theme=snow]{color-scheme:light}
 .fgl button em{margin-left:auto;font-style:normal;font:500 11px var(--mono);color:var(--faint)}
 .fgl button:hover,.fgl button.on{background:var(--hover);color:var(--ink)}.fgl button.on{box-shadow:inset 2px 0 0 var(--acc)}
 .fgl .none{padding:8px;color:var(--faint);font-size:12.5px}
+
+/* run 37: reagent profiles */
+.rg-h{font:600 11.5px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:14px 8px 6px}
+.pf-hero{flex-wrap:wrap}.pf-hero .btn{margin-left:auto}
+.pf-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 22px 4px}
+.pf-n{color:var(--faint);font-variant-numeric:tabular-nums;margin-left:3px}.seg button.on .pf-n{color:var(--acct)}
+.pf-hint{color:var(--faint);font-size:13px}
+.pf-list{padding:10px 22px 26px;display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:10px}
+.pf-note{grid-column:1/-1;color:var(--mute);margin:0 0 4px}
+.pf-row{display:flex;flex-direction:column;gap:6px;padding:10px 14px 11px;border:1px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer;transition:border-color .15s,background .15s,transform .2s var(--ease)}
+.pf-row:hover,.pf-row:focus-visible{border-color:var(--line2);background:color-mix(in oklch,var(--panel) 90%,var(--acc) 10%);outline:none}
+.pf-g{display:flex;align-items:center;gap:8px}.pf-g b{font:600 14px var(--disp);color:var(--ink)}
+.pf-arrow{color:var(--acct);background:var(--accbg)}
+.pf-eq{display:flex;align-items:center;gap:10px;min-height:64px;overflow:hidden}
+.pf-m{display:flex;align-items:center}.pf-m svg{max-height:92px;max-width:210px;height:auto;width:auto}
+.pf-to{width:34px;flex:none;color:var(--mute)}
+.pf-by{color:var(--mute);font-size:13px;white-space:nowrap}
+.pf-t{margin:0;color:var(--ink2);font-size:14px;line-height:1.4}
+.pf-nos{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:8px}
+.pf-no{display:flex;flex-direction:column;gap:3px;padding:9px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--line)}
+.pf-no b{font:600 13.5px var(--disp);color:var(--ink2)}.pf-no span{color:var(--mute);font-size:13.5px;line-height:1.4}
+.pf-no.pos{border-color:color-mix(in oklch,var(--acc) 40%,var(--line))}.pf-no.pos b{color:var(--acct)}
+.pf-notes{margin-top:10px;border-top:1px solid var(--line);padding-top:22px}.pf-notes h2{font:600 22px var(--disp)}
+
+/* ---------- run 40: phone layout (≤ 760 px): everything stacks, nothing squeezes to zero ---------- */
+@media (max-width:760px){
+  .top{gap:8px;padding:0 8px;overflow-x:auto;scrollbar-width:none}.top::-webkit-scrollbar{display:none}
+  .brand .wm{display:none}.tabs{margin-left:0;flex:none}.kbar{min-width:0;width:38px;padding:0;justify-content:center;flex:none}.kbar>*:not(svg):not(.ic){display:none}
+  .v.on{flex-direction:column;overflow:auto}
+  .rail,.glist{width:auto;max-height:32vh;flex:none;border-right:none;border-bottom:1px solid var(--line);padding-bottom:14px}
+  .gmain{flex:none;overflow:visible}
+  .gside{width:auto;flex:none;border-left:none;border-top:1px solid var(--line)}
+  .grid,.facts,.exg,.minis,.pf-list,.pf-nos{grid-template-columns:1fr}
+  .rxv{grid-template-columns:1fr}
+  .pf-hero h1{font-size:28px}
+}
+@media (max-width:760px){
+  .tabs a,.tabs button{padding-left:9px;padding-right:9px;font-size:14px}
+  .gmain{overflow-x:hidden}.gmain>*{max-width:100%;box-sizing:border-box}
+  .pf-list>*,.pf-nos>*{min-width:0;max-width:100%}.pf-list svg,.pf-nos svg,.gmain svg{max-width:100%;height:auto}
+}

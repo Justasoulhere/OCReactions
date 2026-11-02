@@ -357,7 +357,7 @@ reg({ id: 'acetylide', name: 'Terminal alkyne + strong base', fam: 'Alkyne', can
     mech.dropFrag(base);
     const rx = (all || []).map(s => s.get && s.get('RX')).find(Boolean) || c.get('RX');
     if (!rx) return done(mech, { title: 'Sodium acetylide', why: ['Add a 1° alkyl halide next to make a longer alkyne'], tags: ['acidbase'] });
-    const sp = E.species((rx.smi || 'C') + rx.X); const ids = mech.add(sp, a, { dist: 1.6 * BL }); const cR = ids.get(1); const xR = ids.get(sp.atoms.size);
+    const sp = E.species((rx.X || 'Br') + (rx.smi || 'C')); const ids = mech.add(sp, a, { dist: 1.6 * BL }); const cR = ids.get(2); const xR = ids.get(1);
     mech.step([[[a], [a, cR]], [[cR, xR], [xR]]], 'The acetylide carbon does SN2 on the alkyl halide (1° works best; 2°/3° give elimination).');
     return done(mech, { title: 'Alkylation of acetylide → internal alkyne', why: ['SN2 needs a 1° (or methyl) halide'], tags: ['SN2'] });
   } });

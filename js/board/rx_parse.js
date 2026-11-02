@@ -61,10 +61,13 @@ S('aqKOH', 'aq.koh|aqkoh|aqueouskoh|aq.naoh|aqnaoh|koh(aq)|naoh(aq)|aqueousnaoh|
 S('Ac2O', '(ch3co)2o|ac2o|aceticanhydride|(ch3co)2o/ch3coona', { acyl: 'CC(=O)', smi: 'CC(=O)OC(C)=O' });
 S('AcCl', 'ch3cocl|accl|acetylchloride|ch3cocl/pyridine|ch3coi|acetyliodide|ch3cobr|acetylbromide', { acyl: 'CC(=O)', smi: 'CC(=O)Cl' }); S('BzCl', 'c6h5cocl|phcocl|benzoylchloride|bzcl', { acyl: 'C(=O)C1=CC=CC=C1', smi: 'O=C(Cl)C1=CC=CC=C1' });
 S('AcOH', 'ch3cooh|aceticacid|acoh|glacialaceticacid|hcooh', { smi: 'CC(O)=O' });
+/* run 35: species from SKM Advanced and the reagent matrix */
+S('NCS', 'ncs|n-chlorosuccinimide'); S('BrCl', 'brcl|bromochloride|brominemonochloride|brominechloride'); S('ICl', 'icl|iodinemonochloride|iodinechloride'); S('IBr', 'ibr|iodinemonobromide|iodinebromide');
+S('Agm', 'ag|agpowder|silverpowder|silver|silvermetal|ag(s)'); S('NaBr', 'nabr|kbr|sodiumbromide|potassiumbromide');
 // flags
 const FLAGS = { heat: 'heat|δ|∆|delta|reflux|warm|boil|hot|hightemp|hightemperature|hight|fuse|fusion|pyrolysis', light: 'hv|hν|hu|light|uv|sunlight|diffusedsunlight|irradiation|lightenergy',
   cold: 'cold|ice|ice-cold|lowtemp|lowtemperature|lowt|0°c|0c|-78c|-78', dil: 'dil|dilute', conc: 'conc|concentrated|concd', aq: 'aq|aqueous', alc: 'alc|alcoholic|ethanolic|etoh|c2h5oh|ethanol|meoh|ch3oh|methanol|isopropanol|propan-2-ol|2-propanol|iproh|ipa',
-  dry: 'dry|anhydrous|anhyd', ether: 'ether|et2o|dryether|diethylether|thf|dioxane', excess: 'excess|xs|exc', one: '1eq|1mole|1mol|oneequivalent|1equiv', pyr: 'pyridine|py|et3n', acetone: 'acetone',
+  dry: 'dry|anhydrous|anhyd', dust: 'dust|powder|powdered', ether: 'ether|et2o|dryether|diethylether|thf|dioxane', excess: 'excess|xs|exc', one: '1eq|1mole|1mol|oneequivalent|1equiv', pyr: 'pyridine|py|et3n', acetone: 'acetone',
   ccl4: 'ccl4|ch2cl2|cs2|chcl3solvent|inert|xylene|dryxylene', polar: 'dmso|dmf|hmpa', pressure: 'pressure|highpressure|300atm|atm|bar', glycol: 'ethyleneglycol|glycol|hoch2ch2oh|(ch2oh)2', red: 'red', liq: 'liq.|liq|liquid|liquefied', dark: 'dark|indark|absenceoflight|nolight', cat: '(cat.)|(cat)|cat.|catalyst|catalytic|trace|traces', basecat: 'base(cat.)|base(cat)|basecat.|basecatalysed|basecatalyzed', protic: 'polarprotic|proticsolvent', aprotic: 'polaraprotic|aproticsolvent', moist: 'moist|moisture|wet', sealed: 'sealedtube|sealed', rt: 'rt|r.t.|roomtemperature|roomtemp', lewis: 'lewisacid' };
 const ALIAS = new Map();
 for (const s of SP) for (const a of s.al) if (a && a !== '#') ALIAS.set(a, s.smi ? { sp: s.id, smi: s.smi } : { sp: s.id });
@@ -81,9 +84,41 @@ for (const [r, smi] of RG) {
   setA(r + 'oh', { sp: 'ROH', smi: smi === '*' ? 'C' : smi }); setA(r + 'nh2', { sp: 'RNH2', smi: smi === '*' ? 'C' : smi });
   if (smi !== '*') { setA('na' + 'o' + r, { sp: 'NaOR', smi }); setA(r + 'ona', { sp: 'NaOR', smi }); setA(r + 'ok', { sp: 'NaOR', smi }); setA(r + 'cocl', { sp: 'RCOCl', smi }); setA('(' + r + ')2culi', { sp: 'R2CuLi', smi }); setA('(' + r + ')2cd', { sp: 'R2Cd', smi }); setA(r + '2cd', { sp: 'R2Cd', smi }); setA(r + '2culi', { sp: 'R2CuLi', smi }); }
 }
-ALIAS.set('ch3i', { sp: 'RX', smi: 'C', X: 'I' }); ALIAS.set('mei', { sp: 'RX', smi: 'C', X: 'I' }); ALIAS.set('ch3oh', { sp: 'ROH', smi: 'C' }); ALIAS.set('etoh', { sp: 'ROH', smi: 'CC' }); ALIAS.set('c2h5oh', { sp: 'ROH', smi: 'CC' });
+ALIAS.set('ch3i', { sp: 'RX', smi: 'C', X: 'I' }); for (const [k2, smi2] of [['ch3cn', 'CC#N'], ['acetonitrile', 'CC#N'], ['methylcyanide', 'CC#N'], ['c2h5cn', 'CCC#N'], ['ch3ch2cn', 'CCC#N'], ['propanenitrile', 'CCC#N'], ['ethylcyanide', 'CCC#N'], ['c6h5cn', 'N#Cc1ccccc1'], ['phcn', 'N#Cc1ccccc1'], ['benzonitrile', 'N#Cc1ccccc1']]) if (!ALIAS.has(k2)) ALIAS.set(k2, { sp: 'org', smi: smi2 }); ALIAS.set('mei', { sp: 'RX', smi: 'C', X: 'I' }); ALIAS.set('ch3oh', { sp: 'ROH', smi: 'C' }); ALIAS.set('etoh', { sp: 'ROH', smi: 'CC' }); ALIAS.set('c2h5oh', { sp: 'ROH', smi: 'CC' });
 ALIAS.set('(ch3)2nh', { sp: 'R2NH', smi: 'C' }); ALIAS.set('me2nh', { sp: 'R2NH', smi: 'C' }); ALIAS.set('(c2h5)2nh', { sp: 'R2NH', smi: 'CC' });
+/* run 30: words from real question banks (Gambit, SKM) */
+for (const [id, al, p] of [['BF3', 'bf3|bf3.oet2|bf3oet2|bf3etherate|borontrifluoride', { lewis: 1, acid: 1 }], ['CAN', 'cericammoniumnitrate|ceric(iv)ammoniumnitrate|(nh4)2ce(no3)6|cericammonium'], ['AlOEt', 'al(oc2h5)3|al(oet)3|aluminiumethoxide|aluminumethoxide|al(och2ch3)3'], ['pyrrolidine', 'pyrrolidine|piperidine|morpholine', { smi: 'C1CCNC1' }]]) { S(id, al, p || {}); for (const a of al.split('|')) ALIAS.set(a, p && p.smi ? { sp: id, smi: p.smi } : { sp: id }); }
+for (const [a, v] of [['alkaline', { sp: 'KOH' }], ['alkali', { sp: 'KOH' }], ['acidic', { sp: 'H3O+' }], ['dimethylamine', { sp: 'R2NH', smi: 'C' }], ['cucl2', { sp: 'CuCl2' }], ['cupricchloride', { sp: 'CuCl2' }], ['t-buocl', { sp: 'tBuOCl' }], ['tbuocl', { sp: 'tBuOCl' }], ['(ch3)3cocl', { sp: 'tBuOCl' }], ['tert-butylhypochlorite', { sp: 'tBuOCl' }], ['sox2', { sp: 'SOCl2', X: 'Br' }], ['sobr2', { sp: 'SOCl2', X: 'Br' }], ['thionylbromide', { sp: 'SOCl2', X: 'Br' }], ['hx', { sp: 'HBr' }], ['px3', { sp: 'PBr3' }], ['nax', { sp: 'NaBr' }],  ['ethylenediamine', { sp: 'RNH2', smi: 'CCN' }], ['ethane-1,2-diamine', { sp: 'RNH2', smi: 'CCN' }], ['diethylamine', { sp: 'R2NH', smi: 'CC' }], ['methylamine', { sp: 'RNH2', smi: 'C' }], ['ethylamine', { sp: 'RNH2', smi: 'CC' }], ['propylamine', { sp: 'RNH2', smi: 'CCC' }],
+  ['koet', { sp: 'NaOEt' }], ['kome', { sp: 'NaOMe' }], ['kooc2h5', { sp: 'NaOEt' }], ['fetube', { sp: 'FeTube' }], ['radicalinitiator', { sp: 'ROOR' }], ['initiator', { sp: 'ROOR' }], ['aibn', { sp: 'ROOR' }], ['h5io6', { sp: 'HIO4' }], ['periodicacid', { sp: 'HIO4' }], ['kio4', { sp: 'HIO4' }],
+  ['kbro3', { sp: 'Br2' }], ['kbro3/hbr', { sp: 'Br2' }], ['agoh', { sp: 'Ag2O' }], ['naoi', { sp: 'NaOCl', X: 'I' }], ['hoi', { sp: 'NaOCl', X: 'I' }], ['naoh/i2', { sp: 'NaOCl', X: 'I' }], ['naocl', { sp: 'NaOCl', X: 'Cl' }], ['gilman', { sp: 'R2CuLi', smi: 'C' }], ['gilmanreagent', { sp: 'R2CuLi', smi: 'C' }]]) ALIAS.set(a, v);
+ALIAS.set('subexcess', { flag: 'subexcess' }); ALIAS.set('alcohol', { flag: 'alc' }); ALIAS.set('alcoholic', { flag: 'alc' }); ALIAS.set('base', { sp: 'KOH' }); ALIAS.set('se', { sp: 'aromat' }); ALIAS.set('se/heat', { sp: 'aromat' }); ALIAS.set('potassiumphthalimide', { sp: 'org', smi: 'O=C1[N-]C(=O)c2ccccc21' });
+for (const a of ['phthalimide-k', 'k-phthalimide', 'phthalimidek', 'kphthalimide', 'potassiumphthalimide', 'phthalimidepotassium', 'phthalimide-k+', 'pk-phthalimide']) ALIAS.set(a, { sp: 'org', smi: 'O=C1[N-]C(=O)c2ccccc21' }); ALIAS.set('hco2et', { sp: 'HCOOEt', smi: 'CCOC=O' }); ALIAS.set('hco2c2h5', { sp: 'HCOOEt', smi: 'CCOC=O' });
 ALIAS.set('ch2n2', { sp: 'CH2N2' }); ALIAS.set('r2cd', { sp: 'R2Cd', smi: 'C' }); ALIAS.set('cdcl2', { sp: 'CdCl2' }); ALIAS.set('diazomethane', { sp: 'CH2N2' });
+/* run 35: more spellings seen in real questions */
+for (const [ks, id, p] of [
+  ['m-cpba|3-chloroperoxybenzoicacid|3-chloroperbenzoicacid|m-chloroperbenzoicacid|m-chloroperoxybenzoicacid|meta-chloroperbenzoicacid|meta-chloroperoxybenzoicacid|peroxybenzoicacid|peroxyaceticacid|performicacid|hco3h|peroxyformicacid|ch3coooh|c6h5coooh|rcoooh|peroxy-acid|peroxyacids|peracids', 'mCPBA'],
+  ['linh2|lithiumamide|sodiumamide|potassiumamide', 'NaNH2', { base: 1, strong: 1 }],
+  ['causticpotash|causticsoda|potassiumhydroxide|sodiumhydroxide|lithiumhydroxide', 'KOH', { base: 1, OH: 1 }],
+  ['pyridiniumchlorochromate|pyridiniumdichromate', 'PCC'],
+  ['hydrogenbromide|hbr(g)|hbr(aq)|hbrgas', 'HBr', { HX: 'Br', acid: 1 }], ['hydrogenchloride|hcl(g)|hcl(aq)|hclgas|drychloride', 'HCl', { HX: 'Cl', acid: 1 }], ['hydrogeniodide|hi(g)|hi(aq)', 'HI', { HX: 'I', acid: 1 }],
+  ['me3cok|me3co-|(ch3)3co-|(ch3)3cona|me3cona|tert-butoxide|t-butoxide|potassiumt-butoxide|sodiumtert-butoxide|tbuona|t-buona|kot-bu|naotbu|naot-bu', 'KOtBu', { base: 1, bulky: 1, alkoxide: 'C(C)(C)C' }],
+  ['iron|ironfilings|ironfillings|ironpowder|ironfiling|fepowder|fefilings|fe(cat)|fe(cat.)|fe(s)', 'FeX3', { lewis: 1 }],
+  ['na2so3|sodiumsulfite|sodiumsulphite|k2so3|na2s2o5|sodiummetabisulphite|sodiummetabisulfite', 'NaHSO3'],
+  ['ammoniacal|ammonical', 'NH3', { amine: 'N' }], ['silvernitrate|alcoholicsilvernitrate|alc.agno3|agno3(alc)', 'AgNO3'],
+  ['p(red)|redphosphorus|phosphorus|phosphorous', 'redP'], ['p', 'redP'],
+  ['al(or)3|al(o-r)3|aluminiumalkoxide|aluminumalkoxide|aluminiumethoxide|al(oc2h5)3', 'AlOEt'],
+  ['sodiumethoxide', 'NaOEt', { base: 1, alkoxide: 'CC' }], ['sodiummethoxide', 'NaOMe', { base: 1, alkoxide: 'C' }],
+  ['sodiumborohydride', 'NaBH4', { hyd: 1 }], ['', 'LiAlH4', { hyd: 2 }],
+  ['sodiumnitrite', 'HNO2'], ['sodiumazide', 'NaN3', { nu: 'N3' }], ['sodiumcyanide|potassiumcyanide', 'NaCN', { nu: 'cn' }],
+  ['sodiumiodide|potassiumiodide', 'NaI', { nu: 'I' }], ['silvercyanide', 'AgCN', { nu: 'nc' }], ['silveroxide|moistsilveroxide', 'Ag2O', { OH: 1 }],
+  ['sodiumhydride', 'NaH', { base: 1 }], ['sodiumbicarbonate|sodiumhydrogencarbonate|sodiumcarbonate|potassiumcarbonate', 'NaHCO3'], ['', 'O3'], ['osmiumtetroxide|osmiumtetraoxide', 'OsO4'],
+  ['potassiumpermanganate', 'KMnO4'], ['potassiumdichromate|sodiumdichromate', 'K2Cr2O7'],
+  ['thionylchloride', 'SOCl2'], ['phosphoruspentachloride', 'PCl5'], ['phosphorustrichloride', 'PCl3'], ['phosphorustribromide', 'PBr3'], ['phosphoruspentoxide', 'P2O5'],
+  ['aluminiumchloride|aluminumchloride|anhydrousalcl3|anhyd.alcl3|alcl3(anhyd)|alcl3(anhyd.)|ferricchloride|ferricbromide|ironbromide|ironchloride|iron(iii)bromide|iron(iii)chloride', 'FeX3', { lewis: 1 }],
+  ['zincdust|zn-dust', 'Zn'], ['tinchloride|tin(ii)chloride', 'SnCl2'], ['hydrazinehydrate|nh2nh2.h2o|n2h4.h2o', 'NH2NH2', { amine: 'NN' }], ['hydroxylaminehydrochloride', 'NH2OH', { amine: 'NO' }],
+]) for (const a of ks.split('|')) if (a) ALIAS.set(a, { sp: id, ...(p || {}) });
+for (const [nm, smi] of [['methyl', 'C'], ['ethyl', 'CC'], ['propyl', 'CCC'], ['n-propyl', 'CCC'], ['isopropyl', 'C(C)C'], ['butyl', 'CCCC'], ['n-butyl', 'CCCC'], ['sec-butyl', 'C(C)CC'], ['isobutyl', 'CC(C)C'], ['tert-butyl', 'C(C)(C)C'], ['t-butyl', 'C(C)(C)C'], ['phenyl', 'C1=CC=CC=C1'], ['benzyl', 'CC1=CC=CC=C1'], ['vinyl', 'C=C'], ['allyl', 'CC=C'], ['cyclohexyl', 'C1CCCCC1'], ['p-tolyl', 'C1=CC=C(C)C=C1']])
+  for (const [w, X] of [['bromide', 'Br'], ['chloride', 'Cl'], ['iodide', 'I']]) { setA(nm + 'magnesium' + w, { sp: 'RMgX', smi, X }); setA(nm + 'lithium', { sp: 'RLi', smi }); }
 const KEYS = [...ALIAS.keys()].sort((a, b) => b.length - a.length);
 const MAXK = KEYS[0].length;
 
@@ -93,8 +128,30 @@ function normalize(t) {
   for (const ch of t) { let k = SUB.indexOf(ch); if (k >= 0) { s += k; continue; } k = SUP.indexOf(ch); if (k >= 0) { s += k; continue; } s += ch; }
   return s.replace(/⁺/g, '+').replace(/[⁻−–—]/g, '-').replace(/[→⟶➝]/g, ' then ').replace(/·/g, '.').replace(/\u00a0/g, ' ');
 }
+/* run 32: named reactions and tests written as words -> the reagents they stand for */
+const NAMED = [
+  [/\b(?:s\s*n|e)\s*[12]\b(?:\s+(?:conditions?|reaction|mechanism))?/gi, ' '],
+  [/\(ch3\)2so4|\bme2so4\b|\bdimethyl\s*sul(?:ph|f)ate\b|\(c2h5\)2so4|\bdiethyl\s*sul(?:ph|f)ate\b/gi, m0 => /c2h5|ethyl/i.test(m0) ? ' C2H5I ' : ' CH3I '], [/\bbbr3\b|\bboron\s+tribromide\b/gi, ' HBr '],
+  [/\bal\s*\(\s*o\s*r\s*\)\s*3\b|\balumin(?:i)?um\s+alkoxide\b|\balumin(?:i)?um\s+ethoxide\b/gi, ' Al(OC2H5)3 '], [/\b(?:alkaline|basic)\s+hydrolysis\b/gi, ' NaOH, H2O, heat '], [/\bacid(?:ic)?\s+hydrolysis\b|\bacid[\s-]*catalys(?:ed|ed)\s+hydrolysis\b/gi, ' H3O+, heat '],
+  [/\bhydroly(?:sis|sed|zed|se|ze)\b/gi, ' H3O+ '], [/\bremov(?:e|al\s+of|ing)\s+(?:of\s+)?water\b|\bdean[\s-]*stark\b/gi, ' dry '], [/\bn[\s-]*chloro\s*succinimide\b/gi, ' NCS '], [/\bn[\s-]*bromo\s*succinimide\b/gi, ' NBS '],
+  [/\bwolff[\s-]*kishner(?:\s+reduction)?\b/gi, ' NH2NH2 then KOH, ethylene glycol, heat '], [/\bhuang[\s-]*minlon\b/gi, ' NH2NH2, KOH, ethylene glycol, heat '], [/\bclemmensen(?:\s+reduction)?\b/gi, ' Zn-Hg, conc. HCl '],
+  [/\brosenmund(?:\s+reduction)?\b/gi, ' H2, Pd/BaSO4 '], [/\bstephen'?s?(?:\s+reduction)?\b/gi, ' SnCl2, HCl then H3O+ '], [/\betard'?s?(?:\s+reaction)?\b/gi, ' CrO2Cl2 then H3O+ '],
+  [/\bgatt?ermann[\s-]*koch(?:\s+reaction)?\b/gi, ' CO, HCl, anhyd. AlCl3 '], [/\bgatt?ermann(?:\s+reaction)?\b/gi, ' Cu, HCl '], [/\breimer[\s-]*tiemann(?:\s+reaction)?\b/gi, ' CHCl3, NaOH then H3O+ '],
+  [/\bkolbe'?s?\s+electrolysis\b/gi, ' electrolysis '], [/\bkolbe'?s?(?:[\s-]*schmitt)?(?:\s+reaction)?\b/gi, ' NaOH then CO2, 400 K, 4 atm then H3O+ '], [/\bcannizzaro(?:'?s)?(?:\s+reaction)?\b/gi, ' conc. NaOH '],
+  [/\bhell[\s-]*volhard[\s-]*zelinsky(?:\s+reaction)?\b|\bhvz(?:\s+reaction)?\b/gi, ' Br2, red P then H2O '], [/\bhofmann'?s?\s+(?:bromamide|degradation|rearrangement)(?:\s+reaction)?\b/gi, ' Br2, NaOH '],
+  [/\bsandmeyer'?s?(?:\s+reaction)?\b/gi, ' CuCl, HCl '], [/\bgabriel(?:'?s)?(?:\s+phthalimide)?(?:\s+synthesis)?\b/gi, ' potassium phthalimide then NaOH, heat '], [/\bwurtz[\s-]*fittig(?:\s+reaction)?\b|\bwurtz(?:\s+reaction)?\b|\bfittig(?:\s+reaction)?\b/gi, ' Na, dry ether '],
+  [/\bbouveault[\s-]*blanc(?:\s+reduction)?\b/gi, ' Na, EtOH '], [/\bmeerwein[\s-]*ponndorf[\s-]*verley(?:\s+reduction)?\b/gi, ' Al(OiPr)3, isopropanol '], [/\boppenauer(?:\s+oxidation)?\b/gi, ' Al(OtBu)3, acetone '],
+  [/\bbaeyer[\s-]*villiger(?:\s+oxidation)?\b/gi, ' mCPBA '], [/\bbaeyer'?s?\s*(?:reagent|test|solution)\b/gi, ' cold dil. KMnO4, KOH '], [/\b(?:no|without|absence\s+of)\s+(?:a\s+|any\s+)?(?:radical\s+)?(?:initiators?|peroxides?|roor)\b/gi, ' '], [/\b(?:no|without)\s+(?:light|hν|hv|uv)\b/gi, ' dark '], [/\bexcess\s+(?:of\s+)?(?=(?:c\d*h\d+|ch4|methane|ethane|propane|butane|isobutane|alkane|hydrocarbon|the\s+alkane|substrate)\b)/gi, ' subexcess '], [/\bozonolysis\b/gi, ' O3 then Zn, H2O '], [/\bgrignard(?:'?s)?\s+reagent\b/gi, ' RMgX '], [/\bsoda[\s-]*lime\b/gi, ' sodalime '],
+  [/\bcarbylamine(?:\s+(?:test|reaction|conditions?))?\b|\bisocyanide\s+test\b/gi, ' CHCl3, alc. KOH, heat '], [/\biodoform(?:\s+(?:test|reaction|conditions?))\b|\bhaloform(?:\s+(?:test|reaction|conditions?))?\b/gi, ' I2, NaOH '],
+  [/\bbrady'?s?(?:\s+reagent)?\b/gi, ' 2,4-DNP '], [/\bwittig(?:\s+reagent|\s+reaction)?\b/gi, ' Ph3P=CH2 '], [/\bdiazoti[sz]ation\b/gi, ' NaNO2, HCl, 0-5 C '], [/\bsaponification\b/gi, ' NaOH, heat then H3O+ '],
+  [/\bhydroboration[\s-]*oxidation\b/gi, ' BH3, THF then H2O2, NaOH '], [/\boxymercuration[\s-]*demercuration\b/gi, ' Hg(OAc)2, H2O then NaBH4 '], [/\bcatalytic\s+hydrogenation\b/gi, ' H2, Pd '],
+  [/\((?:[^()]*\btest\b[^()]*)\)/gi, ' '], [/\bph\s*[0-6](?:\.\d)?(?:\s*[-–]\s*[0-6](?:\.\d)?)?\b/gi, ' H3O+ '],
+  [/\bdehydrohalogenation\b/gi, ' alc. KOH, heat '], [/\bnitrating\s+mixture\b/gi, ' conc. HNO3, conc. H2SO4 '], [/\bclaisen\s+condensation\b/gi, ' NaOEt then H3O+ '], [/\bclaisen[\s-]*schmidt(?:\s+(?:reaction|condensation))?\b/gi, ' dil. NaOH, heat '],
+  [/\bperkin(?:\s+reaction)?\b/gi, ' (CH3CO)2O, CH3COONa, heat '], [/\bbirch(?:\s+reduction)?\b/gi, ' Na, liq. NH3 '], [/\bacidified\b/gi, ' H+, '], [/\bneutral\b/gi, ' '], [/\bselenium\b/gi, ' Se '], [/\(sia\)2bh/gi, ' disiamylborane '],
+  [/\bfriedel[\s-]*crafts\s+acylation\b/gi, ' CH3COCl, anhyd. AlCl3 '], [/\bfriedel[\s-]*crafts\s+alkylation\b/gi, ' CH3Cl, anhyd. AlCl3 ']];
+function named(t) { let s = String(t || ''); for (const [re, rep] of NAMED) s = s.replace(re, rep); return s; }
 function splitStages(t) {
-  t = normalize(t);
+  t = normalize(named(normalize(String(t || ''))));
   const parts = t.split(/\bthen\b|;|\n|\bfollowed by\b|\(\s*(?:i{1,3}|iv|v)\s*\)|(?:^|\s)(?:i{1,3}|iv)\)|(?:^|[\s,])\d\s*[.)](?!\d)/i).map(x => x && x.trim()).filter(x => x);
   return parts.length ? parts : [''];
 }
@@ -102,6 +159,25 @@ function temps(s) {
   const out = []; const re = /(-?\d{1,4})\s*(?:-\s*(-?\d{1,4})\s*)?(°\s*c|°c|deg\s*c|k\b|°|c\b)/gi; let m;
   while ((m = re.exec(s))) { let v = +m[1], v2 = m[2] != null ? +m[2] : v; const u = m[3].toLowerCase().replace(/\s/g, ''); let K = u === 'k' ? (v + v2) / 2 : (v + v2) / 2 + 273; out.push({ K, txt: m[0] }); }
   return out;
+}
+/* run 32: chunks that are not reagent aliases but read as an organic compound ("methyl iodide", "2-chloropropane",
+   "CH3CH2CH2Br", "isobutyl chloride", "propanal") become { sp: 'org', smi } entries; solve() classifies them */
+const SOLV = new Set(['CCCCCC', 'CCCCC', 'CCCCCCC', 'CC#N', 'Cc1ccccc1C', 'Cc1cccc(C)c1', 'Cc1ccc(C)cc1']);
+function orgPass(s, st) {
+  const N = root.OCName; if (!N || !N.read) return s;
+  const parts = s.split(/(\s*(?<!\d),\s*|\s*,(?!\d)\s*|\s*[;+]\s*|\s\/\s)/);
+  for (let ci = 0; ci < parts.length; ci += 2) { const ch = parts[ci]; if (!ch || !/[a-z]/.test(ch)) continue;
+    const comp = ch.replace(/\s+/g, ''); if (!comp || ALIAS.has(comp) || ALIAS.has(comp.replace(/\.$/, ''))) continue;
+    const words = ch.split(/[\s\/]+/).filter(Boolean); if (!words.length) continue; const keep = words.slice(); let hit = false;
+    for (let L = Math.min(words.length, 6); L >= 1; L--) for (let a = 0; a + L <= words.length; a++) {
+      if (keep.slice(a, a + L).some(w => w === null)) continue; const win = words.slice(a, a + L).join(' '); const wc = win.replace(/\s+/g, '').replace(/^[(]+|[).]+$/g, '');
+      if (wc.length < 3 || ALIAS.has(wc) || /^\d/.test(wc) && !/[a-z]{2}/.test(wc)) continue;
+      if (L > 1 && words.slice(a, a + L).every(w => ALIAS.has(w.replace(/[(),.]+$/g, '').replace(/^[(]+/, '')))) continue; /* 'br2 ccl4': every word is a reagent by itself */
+      let r = null; try { r = N.read(wc.length < win.length ? win : wc, { smiles: false }) || (wc !== win ? N.read(wc, { smiles: false }) : null); } catch (e) { r = null; } if (!r || !r.smi) continue;
+      if (SOLV.has(r.smi)) { st.flags.add('solvent'); } else { const rec = r.special ? { sp: r.special, smi: r.smi, txt: win } : { sp: 'org', smi: r.smi, txt: win, how: r.how }; const prev = st.sp.get(rec.sp); if (!prev) st.sp.set(rec.sp, rec); else if (!Array.isArray(prev)) st.sp.set(rec.sp, [prev, rec]); else prev.push(rec); }
+      for (let q = a; q < a + L; q++) keep[q] = null; hit = true; }
+    if (hit) parts[ci] = ' ' + keep.map(w => w === null ? ',' : w).join(' ') + ' '; }
+  return parts.join('');
 }
 function parseStage(txt) {
   const st = { raw: txt, sp: new Map(), flags: new Set(), T: null, unknown: [], eq: null };
@@ -112,13 +188,16 @@ function parseStage(txt) {
   // amounts: "2 eq", "(1 equiv.)", "2 mol", "excess", "xs", leading coefficients "2HBr" / "3 H2"
   s = s.replace(/\(?\s*(\d+(?:\.\d+)?)\s*(?:eq|equiv|equivalents?|moles?|mol)\b\.?\s*\)?/g, (m0, n) => { st.eq = +n; return ','; });
   s = s.replace(/\(?\b(?:excess|xs|in\s+excess|large\s+excess)\b\)?/g, () => { st.eq = Infinity; return ',excess,'; });
-  s = s.replace(/(^|[\s,(+\/])([2-6])\s*(?=(?:h2|hbr|hcl|hi|br2|cl2|i2|hno3|naoh|koh|nanh2|ch3i|mei|ch3mgbr|ch3mgi|rmgx|o3|nabh4|lialh4|na|naome|naoet|ch3cl|ch3br)\b)/g, (m0, pre, n) => { if (st.eq == null) st.eq = +n; return pre; });
+  s = s.replace(/(^|[\s,(+\/])([2-6])\s*(?=(?:h2|hbr|hcl|hi|br2|cl2|i2|hno3|naoh|koh|nanh2|ch3i|mei|ch3mgbr|ch3mgi|rmgx|o3|nabh4|lialh4|na|naome|naoet|ch3cl|ch3br|ag|agpowder|zn|mg)\b)/g, (m0, pre, n) => { if (st.eq == null) st.eq = +n; return pre; });
   s = s.replace(/\d+(?:\.\d+)?\s*%/g, ' ');
   s = s.replace(/(\d+(?:\s*-\s*\d+)?)\s*(?:atm|bar)\b/g, () => { st.flags.add('pressure'); return ' '; });
   // apostrophes and filler words: "Schiff's reagent", "Tollens' reagent", "Fehling's solution", "Lucas test"
-  s = s.replace(/['’‘`]/g, '').replace(/\b(?:reagents?|solution|soln\.?|test)\b/g, ' ');
+  s = s.replace(/['’‘`]/g, '').replace(/\b(?:reagents?|solution|soln\.?|test|hydrate|medium|mixture|prolonged|vigorous|strong(?=\s+heat)|conditions?|metal|labell?ed|solvents?(?!\s*free)|condensation|alkylation|treatment|treated|followed|catalytic\s+amount\s+of|amount|small|large|quantity|gas|gaseous|crystals?|powdered|fused|then\s+work[\s-]*up|reaction|carefully|slowly|stirr?(?:ing|ed)?)\b/g, ' ');
+  // phrases that stand for a species + a condition
+  s = s.replace(/super-?\s*heated\s+steam/g, ' steam, heat ').replace(/\b(?:dry\s+)?distil(?:l)?(?:ation|led)?\b/g, ' dry, heat ').replace(/\bstrong\s+base\b/g, ' alc. koh ').replace(/\bph\s*=?\s*\d+(?:\.\d+)?(?![a-z0-9=(\[\]])/g, ' ').replace(/\bignition\b|\bburn(?:t|ing)?\b|\bcombustion\b/g, ' o2, heat ').replace(/\bfe\s+tube\b|\biron\s+tube\b/g, ' redhotirontube ').replace(/\bradical\s+initiator\b/g, ' roor ');
   // little linking words are separators, not reagents ("Na in dry ether", "Br2 with FeBr3")
   s = s.replace(/\b(?:in|with|and|using|under|over|catalyst of|by|on|at)\b/g, ' , ');
+  if (root.OCName) s = orgPass(s, st);
   for (const t of temps(s)) { st.T = st.T == null ? t.K : st.T; s = s.replace(t.txt.toLowerCase(), ' '); }
   if (/\b(\d{3})\s*$/.test(s) && st.T == null) { st.T = +RegExp.$1; s = s.replace(/\b\d{3}\s*$/, ''); }
   const c = s.replace(/\s+/g, '').replace(/,(?=\d)/g, '#').replace(/\.(?![a-z]?\))/g, '.');
@@ -129,6 +208,8 @@ function parseStage(txt) {
   while (i < cc.length) {
     let hit = null;
     for (let L = Math.min(MAXK, cc.length - i); L > 0; L--) { const sub = cc.substr(i, L); const v = ALIAS.get(sub); if (v) { // word boundary check for very short aliases
+        if (sub === 'p' && (/[a-z]/.test(cc[i - 1] || '') || /[a-z(]/.test(cc[i + 1] || ''))) continue;
+        if (sub === 'ag' && /[a-z]/.test(cc[i - 1] || '')) continue;
         if (L <= 2 && /[a-z0-9]/.test(cc[i + L] || '') && !/^(h\+|oh|na|k|zn|sn|fe|cu|mg|li|pd|ni|pt)$/.test(sub)) { const nx = cc[i + L]; if (/[a-z]/.test(nx)) continue; }
         hit = [sub, v]; break; } }
     if (!hit) { junk += cc[i]; i++; continue; }
@@ -145,16 +226,21 @@ function parseStage(txt) {
   // derived combos
   const has = k => st.sp.has(k);
   if (has('H2SO4') && has('HNO3')) st.sp.set('NO2+', { sp: 'NO2+' });
+  if (has('NaI') && has('HBr')) { st.sp.set('HI', { sp: 'HI', HX: 'I', acid: 1 }); st.sp.delete('HBr'); st.sp.delete('NaI'); }
+  if (has('NaBr') && (has('H2SO4') || has('H3PO4'))) { st.sp.set('HBr', { sp: 'HBr', HX: 'Br', acid: 1 }); st.sp.delete('NaBr'); }
+  if (has('FeX3') && has('HCl') && !has('Cl2') && !has('Br2') && !/fe\s*(?:cl|br)\s*3|ferric|alcl|albr|lewis/i.test(st.raw)) { st.sp.set('Sn/HCl', { sp: 'Sn/HCl' }); st.sp.delete('FeX3'); }
   if (has('NaNO2') || has('HNO2')) st.sp.set('HNO2', { sp: 'HNO2' });
   if ((has('Zn') || has('Sn') || has('Fe')) && has('HCl')) st.sp.set('Sn/HCl', { sp: 'Sn/HCl' });
   if (has('Zn') && has('H2O')) st.sp.set('Me2S', { sp: 'Me2S' });
-  if (has('Na') && (has('NH3') || st.flags.has('red'))) { if (has('NH3')) st.sp.set('Na/NH3', { sp: 'Na/NH3' }); }
+  if ((has('Na') || has('Li')) && (has('NH3') || st.flags.has('red'))) { if (has('NH3')) { st.sp.set('Na/NH3', { sp: 'Na/NH3' }); st.sp.delete('Li'); } }
   if (has('Br2') && has('KOH') && !st.flags.has('alc')) st.sp.set('Br2/NaOH', { sp: 'Br2/NaOH' });
   if (has('I2') && (has('KOH') || has('NaHCO3'))) st.sp.set('NaOCl', { sp: 'NaOCl', X: 'I' });
   if (has('Cl2') && has('KOH')) st.sp.set('NaOCl', { sp: 'NaOCl', X: 'Cl' });
   if (has('bleach')) st.sp.set('NaOCl', { sp: 'NaOCl', X: 'Cl' });
   if (has('ZnCl2') && /lucas/i.test(st.raw)) st.sp.set('HCl', { sp: 'HCl' });
   if (has('HCl') && has('ZnCl2')) st.sp.set('Lucas', { sp: 'Lucas' });
+  if (has('AgNO3') && (has('KOH') || has('NH3') || has('aqKOH'))) st.sp.set('Tollens', { sp: 'Tollens' });
+  if (has('NaI') && (has('H3PO4') || has('H2SO4') && false)) { st.sp.set('HI', { sp: 'HI', HX: 'I' }); st.sp.delete('NaI'); }
   if (/\bdil/i.test(st.raw)) st.flags.add('dil'); if (/\bconc/i.test(st.raw)) st.flags.add('conc');
   if (has('Br2') && st.flags.has('red')) st.sp.set('HVZ', { sp: 'HVZ' });
   if (has('Br2') && has('redP')) st.sp.set('HVZ', { sp: 'HVZ' });
@@ -164,6 +250,7 @@ function parseStage(txt) {
   if (has('KOH') && st.flags.has('dil')) st.sp.set('aqKOH', { sp: 'aqKOH', dil: 1 });
   if (has('KMnO4') && (st.flags.has('cold') || st.flags.has('dil'))) st.flags.add('mild');
   if (has('NaH') || has('Na')) st.flags.add('metal');
+  if (has('Na') && st.flags.has('alc') && !has('ROH') && !has('KOH')) st.sp.set('ROH', { sp: 'ROH', smi: 'CC' });
   if (has('Pd') && has('H2') === false && has('Lindlar') === false) { /* Pd alone */ }
   return st;
 }
@@ -189,5 +276,5 @@ function stageCtx(st) {
     heat: f.has('heat') || (st.T != null && st.T >= 353), light: f.has('light'), cold: f.has('cold') || (st.T != null && st.T <= 283),
   };
 }
-root.RxParse = { parse, stageCtx, normalize, splitStages, ALIAS, RG, SP };
+root.RxParse = { parse, stageCtx, normalize, splitStages, ALIAS, RG, SP, named };
 })(typeof window !== 'undefined' ? window : globalThis);
